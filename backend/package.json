@@ -11,9 +11,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@clerk/clerk-react": "^5.31.2",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.21.2",
+    "mongodb": "^6.3.0",
     "mongoose": "^8.13.0",
+    "react-router-dom": "^7.6.0",
     "stripe": "^18.0.0"
   }
 }

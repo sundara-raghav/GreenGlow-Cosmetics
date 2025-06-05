@@ -8,7 +8,7 @@ import { useNavigate, Link } from 'react-router-dom';
 
 const Cart = () => {
   const navigate = useNavigate();
-  const { cartItems, removeFromCart, clearCart, setCartItems } = useContext(CartContext);
+  const { cartItems, removeFromCart, clearCart } = useContext(CartContext);
   const { loggedInUser, fetchJobs } = useContext(AppContext);
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
@@ -17,6 +17,11 @@ const Cart = () => {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   
   useEffect(() => {
+    if (!cartItems.length && !showCheckoutForm) {
+      // If cart is empty and not in checkout form, redirect to home
+      // navigate('/');
+    }
+    
     // Pre-fill customer info if user is logged in
     if (loggedInUser && !customerInfo.name) {
       setCustomerInfo(prev => ({
@@ -25,14 +30,7 @@ const Cart = () => {
         email: loggedInUser.email || ''
       }));
     }
-    
-    // For new users, ensure cart is initialized as empty
-    if (!loggedInUser) {
-      // We don't clear the cart here as it might be intentional
-      // that a guest user has items in their cart
-      console.log('New/guest user detected');
-    }
-  }, [loggedInUser, customerInfo.name]);
+  }, [loggedInUser, navigate]);
   
   const [paymentStatus, setPaymentStatus] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -47,12 +45,6 @@ const Cart = () => {
 
   const handleCheckout = async (e) => {
     e.preventDefault();
-    
-    // Check if cart is empty
-    if (cartItems.length === 0) {
-      alert("Your cart is empty. Please add items before checking out.");
-      return;
-    }
     
     // Validate required fields
     if (!customerInfo.name || !customerInfo.email || !customerInfo.phone || 
@@ -84,41 +76,14 @@ const Cart = () => {
       const estimatedDelivery = new Date();
       estimatedDelivery.setDate(estimatedDelivery.getDate() + 1);
       
-      // Prepare order data with optimized payload
+      // Prepare order data
       const orderData = {
         customerInfo: enhancedCustomerInfo,
-        items: cartItems.map(item => {
-          // Create a clean item object with only the necessary properties
-          // and optimize large fields like images and descriptions
-          const itemName = item.name || item.title || item.product || 'Product';
-          const itemPrice = parseFloat(item.price) || 0;
-          
-          // Handle image data - if it's a data URL, don't send it to the server
-          let imageUrl = '';
-          if (item.image) {
-            // If it's a data URL (base64), just store a placeholder
-            if (typeof item.image === 'string' && item.image.startsWith('data:')) {
-              imageUrl = 'image-data-url';
-            } else {
-              // Otherwise use the URL
-              imageUrl = item.image;
-            }
-          } else if (item.img) {
-            imageUrl = item.img;
-          }
-          
-          // Truncate description if it's too long
-          const description = (item.description || item.usage || '').substring(0, 200);
-          
-          return {
-            name: itemName,
-            price: itemPrice,
-            quantity: 1,
-            image: imageUrl,
-            category: (item.category || '').substring(0, 50),
-            description: description
-          };
-        }),
+        items: cartItems.map(item => ({
+          ...item,
+          quantity: 1, // Ensure quantity exists
+          price: item.price || 0
+        })),
         totalAmount,
         paymentMethod: 'Cash on Delivery',
         shippingAddress: formattedAddress,
@@ -172,18 +137,7 @@ const Cart = () => {
       
       // Update UI
       setPaymentStatus('success');
-      
-      // Clear the cart using the context function
-      if (typeof clearCart === 'function') {
-        clearCart();
-      } else {
-        console.error('clearCart is not a function');
-        // Fallback: manually clear cart
-        setCartItems([]);
-        localStorage.removeItem('cartItems');
-      }
-      
-      // Reset form
+      clearCart();
       setCustomerInfo({
         name: '', email: '', phone: '', address: '', city: '', pincode: ''
       });
@@ -264,20 +218,8 @@ const Cart = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2">
                 <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                  <div className="p-4 border-b flex justify-between items-center">
+                  <div className="p-4 border-b">
                     <h2 className="text-lg font-semibold">Cart Items ({cartItems.length})</h2>
-                    {cartItems.length > 0 && (
-                      <button 
-                        onClick={() => {
-                          if (window.confirm('Are you sure you want to clear your cart?')) {
-                            clearCart();
-                          }
-                        }}
-                        className="text-red-500 hover:text-red-700 text-sm px-2 py-1 border border-red-300 rounded-md"
-                      >
-                        Clear Cart
-                      </button>
-                    )}
                   </div>
                   <ul className="divide-y divide-gray-200">
                     {cartItems.map((item, index) => (
@@ -296,7 +238,7 @@ const Cart = () => {
                             <p className="text-lg font-semibold">₹{item.price?.toLocaleString()}</p>
                             <button 
                               onClick={() => removeFromCart(item)}
-                              className="text-red-500 hover:text-red-700 px-3 py-1 border border-red-300 rounded-md"
+                              className="text-red-500 hover:text-red-700"
                             >
                               Remove
                             </button>

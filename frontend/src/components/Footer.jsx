@@ -63,11 +63,11 @@ const Footer = () => {
         </div>
         <div className="flex items-center justify-center p-3">
           <FaInstagram />
-          <p className="p-2">Sarvam_Products</p>
+          <p className="p-2">GreenGlow_Cosmetics</p>
         </div>
         <div className="flex items-center justify-center p-3">
           <IoMail />
-          <p className="p-2">sarvam@ac.in</p>
+          <p className="p-2">contact@greenglowcosmetics.com</p>
         </div>
       </div>
       <div className="flex flex-col items-center justify-center pl-15">

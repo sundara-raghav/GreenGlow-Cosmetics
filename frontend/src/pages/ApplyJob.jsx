@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { CartContext } from '../context/CartContext';
 import Loading from '../components/Loading';
@@ -39,14 +39,19 @@ const StarRating = ({ rating }) => {
 const ApplyJob = () => {
   const { id } = useParams();
   const [jobData, setJobData] = useState(null);
-  const { jobs } = useContext(AppContext);
+  const { jobs, user: contextUser, loggedInUser } = useContext(AppContext);
   const { addToCart } = useContext(CartContext);
+  const navigate = useNavigate();
+
+  // Determine if user is signed in as customer (role 'client')
+  const isCustomer = (contextUser && contextUser.role === 'client' && contextUser.email);
 
   const fetchJob = () => {
-    const data = jobs.filter((job) => job.id === id);
+    // Support both MongoDB _id and legacy id
+    const data = jobs.filter((job) => (job.id === id || job._id === id));
     if (data.length !== 0) {
       setJobData(data[0]);
-      console.log(data[0]);
+      // console.log(data[0]);
     }
   };
 
@@ -55,6 +60,15 @@ const ApplyJob = () => {
       fetchJob();
     }
   }, [id, jobs]);
+
+  const handleBuyNow = () => {
+    if (!loggedInUser) {
+      navigate('/customer-login');
+      return;
+    }
+    addToCart(jobData);
+    navigate('/cart');
+  };
 
   return jobData ? (
     <>
@@ -93,7 +107,13 @@ const ApplyJob = () => {
               </div>
             </div>
             <div className="flex flex-col justify-center text-end text-sm max-md:mx-auto max-md:text-center">
-              <button className="bg-blue-600 p-2.5 px-10 text-white rounded">Buy Now</button>
+              <button
+                className={`bg-blue-600 p-2.5 px-10 text-white rounded ${!loggedInUser ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={handleBuyNow}
+                disabled={!loggedInUser}
+              >
+                Buy Now
+              </button>
               <p className="mt-1 text-gray-600">Posted {moment(jobData.date).fromNow()}</p>
             </div>
           </div>
@@ -111,7 +131,7 @@ const ApplyJob = () => {
             <div className="w-full lg:w-1/3 mt-8 lg:mt-0 lg:ml-8 space-y-5">
               <h2>More Products from {jobData.companyId.name}</h2>
               {jobs
-                .filter((job) => job.id !== jobData.id && job.companyId.id === jobData.companyId.id)
+                .filter((job) => (job.id !== jobData.id && job._id !== jobData._id) && ((job.companyId && (job.companyId.id === jobData.companyId.id || job.companyId._id === jobData.companyId._id))))
                 .slice(0, 4)
                 .map((job, index) => (
                   <JobCard key={index} job={job} />
