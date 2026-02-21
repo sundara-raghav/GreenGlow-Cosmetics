@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: greenglow-backend
+    ports:
+      - "4242:4242"
+    environment:
+      - PORT=4242
+      - FRONTEND_URL=http://localhost
+      - MONGODB_URI=${MONGODB_URI}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - DB_NAME=${DB_NAME}
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+    networks:
+      - greenglow-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: greenglow-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - greenglow-network
+
+networks:
+  greenglow-network:
+    driver: bridge
